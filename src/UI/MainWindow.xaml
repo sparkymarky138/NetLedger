@@ -1,0 +1,589 @@
+<Window x:Class="NetLedger.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:NetLedger.UI"
+        Title="NetLedger" Width="1200" Height="760" MinWidth="960" MinHeight="580"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI" FontSize="13" UseLayoutRounding="True"
+        Icon="/Assets/netledger.ico">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVis" />
+
+        <!-- App icon with a fallback glyph -->
+        <DataTemplate x:Key="AppIconTemplate">
+            <Grid Width="28" Height="28">
+                <Border CornerRadius="6" Background="{StaticResource HoverBrush}">
+                    <TextBlock Text="&#xE770;" FontFamily="{StaticResource IconFont}" FontSize="14"
+                               Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border CornerRadius="6" Background="{StaticResource CardBrush}"
+                        Visibility="{Binding HasIcon, Converter={StaticResource BoolVis}}">
+                    <Image Source="{Binding Icon}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource BgBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== Left rail ========== -->
+        <Border Background="{StaticResource RailBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="20,22,0,26">
+                    <Image Source="/Assets/logo.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="NetLedger" FontSize="17" FontWeight="SemiBold" />
+                        <TextBlock Text="who is using your network" Style="{StaticResource Caption}" FontWeight="Normal" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Margin="12,0,12,14" Padding="14,12" CornerRadius="10" Background="{StaticResource CardBrush}">
+                    <StackPanel>
+                        <TextBlock Text="RIGHT NOW" Style="{StaticResource Caption}" />
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="↓" Foreground="{StaticResource DownBrush}" FontWeight="Bold" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" x:Name="RailDown" Text="0 B/s" />
+                        </Grid>
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="↑" Foreground="{StaticResource UpBrush}" FontWeight="Bold" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" x:Name="RailUp" Text="0 B/s" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource OkBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="StatusLabel" Text="Monitoring" Style="{StaticResource Muted}" FontSize="12" Margin="7,0,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel>
+                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavButton}" Tag="&#xE9D9;" Content="Overview" IsChecked="True" Checked="OnNav" />
+                    <RadioButton x:Name="NavApps" Style="{StaticResource NavButton}" Tag="&#xE71D;" Content="Apps &amp; access" Checked="OnNav" />
+                    <RadioButton x:Name="NavConnections" Style="{StaticResource NavButton}" Tag="&#xE774;" Content="Connections" Checked="OnNav" />
+                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavButton}" Tag="&#xE81C;" Content="History" Checked="OnNav" />
+                    <RadioButton x:Name="NavAlerts" Style="{StaticResource NavButton}" Tag="&#xE7BA;" Checked="OnNav">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="New apps" />
+                            <Border x:Name="AlertBadge" Background="{StaticResource UpBrush}" CornerRadius="8" Padding="6,0" Margin="8,0,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="AlertBadgeText" Text="0" Foreground="{StaticResource BgBrush}" FontSize="11" FontWeight="Bold" />
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Tag="&#xE713;" Content="Settings" Checked="OnNav" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ========== Pages ========== -->
+        <Grid Grid.Column="1" Margin="30,24,30,24">
+
+            <!-- Warning banner for ETW / firewall problems -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <Border x:Name="Banner" Visibility="Collapsed" Background="{StaticResource DangerSoftBrush}" BorderBrush="{StaticResource DangerBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16">
+                    <TextBlock x:Name="BannerText" TextWrapping="Wrap" />
+                </Border>
+                <Border x:Name="SnoozeBanner" Visibility="Collapsed" Background="#26F4A261" BorderBrush="{StaticResource UpBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,16">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Resume now" Click="OnResume" Margin="12,0,0,0" />
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE708;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource UpBrush}"
+                                   FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <TextBlock x:Name="SnoozeText" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Overview -->
+            <Grid x:Name="PageOverview" Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Overview" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Live traffic for the whole PC. Loopback (traffic that stays inside this PC) is not counted." Style="{StaticResource Muted}" Margin="0,4,0,18" />
+                </StackPanel>
+
+                <UniformGrid Grid.Row="1" Columns="4" Margin="-6,0,-6,16">
+                    <Border Style="{StaticResource Card}" Margin="6">
+                        <StackPanel>
+                            <TextBlock Text="DOWNLOAD NOW" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="KpiDown" Text="0 B/s" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource DownBrush}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6">
+                        <StackPanel>
+                            <TextBlock Text="UPLOAD NOW" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="KpiUp" Text="0 B/s" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource UpBrush}" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6">
+                        <StackPanel>
+                            <TextBlock Text="TODAY" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="KpiToday" Text="0 B" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,0" />
+                            <TextBlock x:Name="KpiTodaySplit" Text="" Style="{StaticResource Muted}" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="6">
+                        <StackPanel>
+                            <TextBlock Text="SINCE NETLEDGER STARTED" Style="{StaticResource Caption}" />
+                            <TextBlock x:Name="KpiSession" Text="0 B" FontSize="22" FontWeight="SemiBold" Margin="0,6,0,0" />
+                            <TextBlock x:Name="KpiSessionSplit" Text="" Style="{StaticResource Muted}" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <Border Grid.Row="2" Style="{StaticResource Card}">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Rectangle Width="10" Height="10" RadiusX="2" RadiusY="2" Fill="{StaticResource DownBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="Download" Style="{StaticResource Muted}" Margin="6,0,16,0" />
+                                <Rectangle Width="10" Height="10" RadiusX="2" RadiusY="2" Fill="{StaticResource UpBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="Upload" Style="{StaticResource Muted}" Margin="6,0,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="Last 5 minutes" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <ui:TrafficChart x:Name="LiveChart" MinHeight="180" />
+                    </DockPanel>
+                </Border>
+
+                <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="See all apps →" Click="OnSeeAllApps" />
+                            <TextBlock Text="Busiest apps right now" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <TextBlock x:Name="TopEmpty" Text="Nothing is using the network at the moment." Style="{StaticResource Muted}" Margin="0,8" />
+                        <ItemsControl x:Name="TopList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="110" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AppIconTemplate}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                                        <Grid Grid.Column="2" VerticalAlignment="Center" Height="6" Margin="0,0,16,0">
+                                            <Border Background="{StaticResource HoverBrush}" CornerRadius="3" />
+                                            <Border Background="{StaticResource DownBrush}" CornerRadius="3" HorizontalAlignment="Left">
+                                                <Border.Width>
+                                                    <MultiBinding Converter="{x:Static ui:ShareWidthConverter.Instance}">
+                                                        <Binding Path="Share" />
+                                                        <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}" />
+                                                    </MultiBinding>
+                                                </Border.Width>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Grid.Column="3" Text="{Binding Down}" Foreground="{StaticResource DownBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Up}" Foreground="{StaticResource UpBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Apps & access -->
+            <Grid x:Name="PageApps" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Apps &amp; access" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Every program that has used the network. Click Allowed / Blocked to change its access through Windows Firewall." Style="{StaticResource Muted}" Margin="0,4,0,16" TextWrapping="Wrap" />
+                </StackPanel>
+                <DockPanel Grid.Row="1" Margin="0,0,0,12">
+                    <Border DockPanel.Dock="Right" Style="{StaticResource SegmentHost}">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" GroupName="AppSort" Content="Active now" Tag="activity" IsChecked="True" Checked="OnAppSort" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="AppSort" Content="Most today" Tag="today" Checked="OnAppSort" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="AppSort" Content="Name" Tag="name" Checked="OnAppSort" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="AppSort" Content="Blocked first" Tag="blocked" Checked="OnAppSort" />
+                        </StackPanel>
+                    </Border>
+                    <CheckBox x:Name="ShowIdleCheck" DockPanel.Dock="Right" Style="{StaticResource Switch}" Content="Show idle" Margin="0,0,18,0"
+                              VerticalAlignment="Center" Checked="OnAppFilterChanged" Unchecked="OnAppFilterChanged" />
+                    <TextBox x:Name="AppSearch" Tag="Search apps by name or path" Width="320" HorizontalAlignment="Left" TextChanged="OnAppFilterChanged" />
+                </DockPanel>
+                <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="12,10,22,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="190" />
+                                <ColumnDefinition Width="190" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="1" Text="APP" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="2" Text="DOWN NOW" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="3" Text="UP NOW" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="4" Text="TODAY" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="5" Text="SINCE START" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="6" Text="ACCESS" Style="{StaticResource ColumnHeader}" />
+                        </Grid>
+                        <ListBox x:Name="AppsList" Style="{StaticResource RowList}" BorderBrush="{StaticResource LineBrush}">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Show history for this app" Click="OnAppHistory" />
+                                    <MenuItem Header="Open file location" Click="OnAppOpenFolder" />
+                                    <MenuItem Header="Copy path" Click="OnAppCopyPath" />
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="190" />
+                                            <ColumnDefinition Width="190" />
+                                            <ColumnDefinition Width="110" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AppIconTemplate}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Detail}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding RateDownText}" Foreground="{StaticResource DownBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding RateUpText}" Foreground="{StaticResource UpBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4" Text="{Binding TodayText}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="5" Text="{Binding SessionText}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="6" Style="{StaticResource AccessPill}" HorizontalAlignment="Left" Click="OnToggleBlock"
+                                                ToolTip="Click to block or allow this app" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Connections -->
+            <Grid x:Name="PageConnections" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Connections" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Open network endpoints right now, refreshed every two seconds." Style="{StaticResource Muted}" Margin="0,4,0,16" />
+                </StackPanel>
+                <DockPanel Grid.Row="1" Margin="0,0,0,12">
+                    <TextBlock x:Name="ConnCount" DockPanel.Dock="Right" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                    <CheckBox x:Name="ShowListeningCheck" DockPanel.Dock="Right" Style="{StaticResource Switch}" Content="Include listening, UDP and loopback" Margin="0,0,18,0"
+                              VerticalAlignment="Center" Checked="OnConnFilterChanged" Unchecked="OnConnFilterChanged" />
+                    <TextBox x:Name="ConnSearch" Tag="Filter by app, address or host" Width="320" HorizontalAlignment="Left" TextChanged="OnConnFilterChanged" />
+                </DockPanel>
+                <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="12,10,22,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="1.3*" />
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="1" Text="APP" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="2" Text="PROTOCOL" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="3" Text="LOCAL" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="4" Text="REMOTE" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="5" Text="REMOTE HOST" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="6" Text="STATE" Style="{StaticResource ColumnHeader}" />
+                        </Grid>
+                        <ListBox x:Name="ConnList" Style="{StaticResource RowList}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="70" />
+                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="1.3*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AppIconTemplate}" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                            <TextBlock Text="{Binding AppName}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Style="{StaticResource Muted}" FontSize="11">
+                                                <Run Text="PID" /> <Run Text="{Binding Pid, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding Protocol}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Local}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Remote}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="5" Text="{Binding Host}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0" ToolTip="{Binding Host}" />
+                                        <TextBlock Grid.Column="6" Text="{Binding State}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- History -->
+            <Grid x:Name="PageHistory" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1.1*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="History" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Data saved every minute while NetLedger runs. Click an app below to chart it alone." Style="{StaticResource Muted}" Margin="0,4,0,16" />
+                </StackPanel>
+                <DockPanel Grid.Row="1" Margin="0,0,0,12">
+                    <Border DockPanel.Dock="Left" Style="{StaticResource SegmentHost}">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Range" Content="Hour" Tag="hour" Checked="OnRange" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Range" Content="Day" Tag="day" IsChecked="True" Checked="OnRange" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Range" Content="Week" Tag="week" Checked="OnRange" />
+                            <RadioButton Style="{StaticResource Segment}" GroupName="Range" Content="Month" Tag="month" Checked="OnRange" />
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+                        <TextBlock x:Name="HistoryScope" Text="All apps" FontWeight="SemiBold" />
+                        <Button x:Name="HistoryClear" Style="{StaticResource LinkButton}" Content="  × show all apps" Click="OnHistoryClear" Visibility="Collapsed" />
+                        <TextBlock x:Name="HistorySum" Style="{StaticResource Muted}" Margin="18,0,0,0" />
+                    </StackPanel>
+                </DockPanel>
+                <Border Grid.Row="2" Style="{StaticResource Card}">
+                    <ui:TrafficChart x:Name="HistoryChart" MinHeight="160" EmptyText="No history yet" />
+                </Border>
+                <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="12,10,22,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="1" Text="APP" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="2" Text="SHARE" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="3" Text="DOWNLOADED" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="4" Text="UPLOADED" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="5" Text="TOTAL" Style="{StaticResource ColumnHeader}" />
+                        </Grid>
+                        <ListBox x:Name="HistList" Style="{StaticResource RowList}" SelectionChanged="OnHistorySelect">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="110" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AppIconTemplate}" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <Grid Grid.Column="2" VerticalAlignment="Center" Height="6" Margin="0,0,20,0">
+                                            <Border Background="{StaticResource HoverBrush}" CornerRadius="3" />
+                                            <Border Background="{StaticResource DownBrush}" CornerRadius="3" HorizontalAlignment="Left">
+                                                <Border.Width>
+                                                    <MultiBinding Converter="{x:Static ui:ShareWidthConverter.Instance}">
+                                                        <Binding Path="Share" />
+                                                        <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}" />
+                                                    </MultiBinding>
+                                                </Border.Width>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Grid.Column="3" Text="{Binding Down}" Foreground="{StaticResource DownBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Up}" Foreground="{StaticResource UpBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="5" Text="{Binding Sum}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- New-app alerts -->
+            <Grid x:Name="PageAlerts" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Clear handled" VerticalAlignment="Top" Click="OnClearAlerts" />
+                    <StackPanel>
+                        <TextBlock Text="New apps" Style="{StaticResource PageTitle}" />
+                        <TextBlock Text="Programs that used the network for the first time. Decide whether each one should keep its access." Style="{StaticResource Muted}" Margin="0,4,0,16" />
+                    </StackPanel>
+                </DockPanel>
+                <Border Grid.Row="1" Style="{StaticResource Card}" Padding="0">
+                    <Grid>
+                        <TextBlock x:Name="AlertsEmpty" Text="No new apps so far. You'll get a notification when one appears." Style="{StaticResource Muted}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ListBox x:Name="AlertsList" Style="{StaticResource RowList}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="190" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AppIconTemplate}" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding When}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Visibility="{Binding Pending, Converter={StaticResource BoolVis}}">
+                                            <Button Content="Keep allowed" Click="OnAlertAllow" Margin="0,0,8,0" IsEnabled="{Binding IsIdle}" />
+                                            <Button Content="Block" Style="{StaticResource DangerButton}" Click="OnAlertBlock" IsEnabled="{Binding IsIdle}" />
+                                        </StackPanel>
+                                        <!-- Shown only after a decision; never covers the buttons -->
+                                        <Border Grid.Column="3" CornerRadius="12" Padding="12,4" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                Visibility="{Binding Handled, Converter={StaticResource BoolVis}}" IsHitTestVisible="False">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource OkSoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{StaticResource OkBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WasBlocked}" Value="True">
+                                                            <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Status}" FontSize="12" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Settings -->
+            <ScrollViewer x:Name="PageSettings" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+                    <TextBlock Text="Settings" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text=" " Margin="0,4,0,8" />
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Behaviour" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,14" />
+                            <CheckBox x:Name="AlertsCheck" Style="{StaticResource Switch}" Margin="0,0,0,14" Click="OnSettingChanged">
+                                <StackPanel>
+                                    <TextBlock Text="Tell me when a new app uses the network" />
+                                    <TextBlock Text="Shows a notification and lists the app under New apps." Style="{StaticResource Muted}" FontSize="12" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox x:Name="TrayCheck" Style="{StaticResource Switch}" Margin="0,0,0,14" Click="OnSettingChanged">
+                                <StackPanel>
+                                    <TextBlock Text="Keep monitoring in the tray when I close the window" />
+                                    <TextBlock Text="Use Exit in the tray menu to stop NetLedger completely." Style="{StaticResource Muted}" FontSize="12" />
+                                </StackPanel>
+                            </CheckBox>
+                            <CheckBox x:Name="AutostartCheck" Style="{StaticResource Switch}" Click="OnAutostartChanged">
+                                <StackPanel>
+                                    <TextBlock Text="Start NetLedger when I sign in" />
+                                    <TextBlock Text="Adds a Task Scheduler task so it starts in the tray without a UAC prompt." Style="{StaticResource Muted}" FontSize="12" />
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Snooze" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,6" />
+                            <TextBlock Text="Pause new-app alerts and let blocked apps use the network for a while. Usage keeps being recorded, and blocking comes back on automatically (also when NetLedger exits)."
+                                       Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                            <TextBlock x:Name="SnoozeSettingsState" Margin="0,0,0,12" Text="Not snoozed." />
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="Snooze15" Content="15 minutes" Click="OnSnooze" Tag="15" />
+                                <Button x:Name="Snooze60" Content="1 hour" Click="OnSnooze" Tag="60" Margin="10,0,0,0" />
+                                <Button x:Name="SnoozeForever" Content="Until I resume" Click="OnSnooze" Tag="0" Margin="10,0,0,0" />
+                                <Button x:Name="SnoozeResume" Content="Resume now" Click="OnResume" Margin="10,0,0,0" IsEnabled="False" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Firewall" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                            <TextBlock x:Name="FirewallState" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="FirewallCount" Margin="0,6,0,12" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Remove all NetLedger firewall rules" Style="{StaticResource DangerButton}" Click="OnRemoveAllRules" />
+                                <Button Content="Open Windows Firewall" Margin="10,0,0,0" Click="OnOpenFirewall" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Data" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                            <TextBlock x:Name="DataPath" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Open data folder" Click="OnOpenData" />
+                                <Button Content="Clear usage history" Margin="10,0,0,0" Click="OnClearHistory" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="About" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,10" />
+                            <TextBlock x:Name="AboutText" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
