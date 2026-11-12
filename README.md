@@ -10,6 +10,8 @@ A small Windows desktop app that shows **which programs use your network, how mu
 - Runs in the notification area (tray) and keeps monitoring when the window is closed
 - Optional start at sign-in
 
+**[⬇ Download NetLedger.exe (latest release)](https://github.com/sparkymarky138/NetLedger/releases/latest)**, or [build it yourself](#build-it-from-source).
+
 Everything is one file, `NetLedger.exe`. It runs on **Windows 10 (version 1607 or later) and Windows 11, 64-bit**. You do not need to install .NET; the runtime is inside the exe.
 
 ---
